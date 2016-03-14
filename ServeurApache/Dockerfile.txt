@@ -2,4 +2,9 @@ FROM ubuntu:14.04
 EXPOSE 80
 RUN apt-get update && apt-get install apache2 -y
 CMD /usr/sbin/apache2ctl -D FOREGROUND
-COPY public-html/www/ /var/www/html/
+COPY mes-sites/ /var/www/
+COPY configuration/ /etc/apache2/sites-avaible/
+sudo chmod -R 755 /var/www
+RUN sudo a2ensite wt14.ephec-ti.be.conf
+RUN sudo a2ensite b2b.ephec-ti.be.conf
+RUN sudo service apache2 restart
