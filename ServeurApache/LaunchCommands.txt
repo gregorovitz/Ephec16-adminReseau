@@ -1,0 +1,11 @@
+## Lancer le dockerfile du serveur apache
+
+sudo docker run -it -p 80:80 -d --name my-running-app my-apache2
+
+################################################################
+
+## Créer le dockerfile du serveur apache 
+
+sudo docker build -t my-apache2 .  
+
+########################################

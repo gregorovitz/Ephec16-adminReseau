@@ -1,0 +1,5 @@
+FROM ubuntu:14.04
+EXPOSE 80
+RUN apt-get update && apt-get install apache2 -y
+CMD /usr/sbin/apache2ctl -D FOREGROUND
+COPY public-html/www/ /var/www/html/
