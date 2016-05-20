@@ -1,0 +1,153 @@
+Service VoIP
+
+Docker
+Les fichiers nécessaires à l'installation du service VoIP se trouve sur le Docker : mrspeculoos/wtasterisk
+
+Configuration serveur
+Les principaux fichiers de configurations d'Asterisk se trouvent dans ces trois fichiers ci-dessous :
+ - /etc/asterisk/sip.conf : Configuration globale d'Asterisk
+ - /etc/asterisk/users.conf : Configuration des utilisateurs
+ - /etc/asterisk/extensions.conf : Configuration du Dialplan
+Afin de conserver une sauvegarde nous allons créer des copies de ces fichiers en cas de soucis :
+$ sudo mv /etc/asterisk/sip.conf /etc/asterisk/sip-save.conf
+$ sudo mv /etc/asterisk/users.conf /etc/asterisk/users-save.conf
+$ sudo mv /etc/asterisk/extensions.conf /etc/asterisk/extensions-save.conf
+Ensuite configurer le fichier sip.conf :
+[general]
+transport=udp
+language=fr
+disallow=all
+allow=ulaw
+
+[staff_ouvrier](!)
+context=interne
+callgroup=1
+pickupgroup=1
+namedcallgroup=work
+type=friend
+host=dynamic
+
+[compta_bureau_1](!)
+context=interne
+callgroup=2
+pickupgroup=2,3
+namedcallgroup=acco
+type=friend
+host=dynamic
+
+[compta_bureau_2](!)
+context=interne
+callgroup=3
+pickupgroup=2,3
+namedcallgroup=acco
+type=friend
+host=dynamic
+
+[market_bureau](!)
+context=market
+callgroup=4
+pickupgroup=4
+namedcallgroup=mark
+type=friend
+host=dynamic
+
+[secret_bureau](!)
+context=secretary
+type=friend
+host=dynamic
+
+[direction](!)
+context=interne
+type=friend
+host=dynamic
+
+[Ouvrier_1](staff_ouvrier)
+secret=ouvrier1
+
+[Ouvrier_2](staff_ouvrier)
+secret=ouvrier2
+
+[Ouvrier_3](staff_ouvrier)
+secret=ouvrier3
+
+[Ouvrier_4](staff_ouvrier)
+secret=ouvrier4
+
+[Ouvrier_5](staff_ouvrier)
+secret=ouvrier5
+
+[Compta_1](compta_bureau_1)
+secret=compta1
+
+[Compta_2](compta_bureau_1)
+secret=compta2
+
+[Compta_3](compta_bureau_2)
+secret=compta3
+
+[Compta_4](compta_bureau_2)
+secret=compta4
+
+[Market_1](market_bureau)
+secret=market1
+
+[Market_2](market_bureau)
+secret=market2
+
+[Market_3](market_bureau)
+secret=market3
+
+[Secretaire](secret_bureau)
+secret=secret1
+
+[Director](direction)
+secret=direc1
+
+Information sur sip.conf
+Le [general] va prendre en compte la configuration générale des SIP, tout le monde la possèdera.
+Les parties [*****](!) sont des groupes. Ils vont spéciéfier la configuration d’un groupe de SIP comme par exemple les marketing. La configuration d’un groupe ne va affecter que les SIP compris dans ce groupe.
+Les parties [xyz](*****) sont les SIP. “xyz” est le nom et le (*****) est le groupe.
+-transport=udp : Indique quel type de transport par défaut utilisé
+-language=fr : Change la langue en français
+-type=friend : Le type d'utilisateur. Afin de garder le côté pratique, nous le laisserons en friend
+-host=dynamic : Y mettre l'adresse IP de l'utilisateur. Si dynamic est mis, Asterix configurera automatiquement
+-context=from-internal : Concerne le moment où l'appel est reçu (voir extension.conf)
+-disallow=all : Refuse tous les codec exceptés ce qui est mis dans allow
+-allow=ulaw : N'autorise que les codec ulaw
+-secret : Est le mot de passe
+-callgroup=x : Indique dans quel groupe x le SIP appartiendra
+-pickupgroup=x : Indique quel groupe le SIP poura décrocher l’appel
+-namedcallgroup=work : Est le nom générique du groupe
+
+Configurer le fichier extensions.conf :
+[interne]
+exten => 100,1,Dial(work,20)
+exten => 101,1,Dial(SIP/Ouvrier_1,20)
+exten => 101,1,Voicemail(101@interne)
+exten => 102,1,Dial(SIP/Ouvrier_2,20)
+exten => 103,1,Dial(SIP/Ouvrier_3,20)
+exten => 104,1,Dial(SIP/Ouvrier_4,20)
+exten => 105,1,Dial(SIP/Ouvrier_5,20)
+exten => 200,1,Dial(acco,20)
+exten => 201,1,Dial(SIP/Compta_1,20)
+exten => 202,1,Dial(SIP/Compta_2,20)
+exten => 203,1,Dial(SIP/Compta_3,20)
+exten => 204,1,Dial(SIP/Compta_4,20)
+exten => 300,1,Dial(mark,20)
+exten => 301,1,Dial(SIP/Market_1,20)
+exten => 302,1,Dial(SIP/Market_2,20)
+exten => 303,1,Dial(SIP/Market_3,20)
+exten => 400,1,Dial(SIP/Secretaire,20)
+
+[market]
+include => interne
+
+[secretary]
+include => interne
+exten => 500,1,Dial(SIP/Director,20)
+
+Informations sur extensions.conf
+[xyz] : Sont les contextes indiqués dans les groupes de sip.conf
+exten => : sont les actions
+xxx,n,Dial(SIP/nom,nn) : "xxx" est le numéro qu'Asterisk reçoit en appel, "n" est la priorité qu'Asterisk donne à cette action, "Dial" est la commande, "SIP/nom" est le nom d'utilisateur qu'il faut appeler dans ce cas ci, "nn" est le temps avant qu'Asterisk ne coup la tentative d'appel si pas de réponse.
+include => : Indique qu'il faut "copier" les commandes du contexte indiqué.
